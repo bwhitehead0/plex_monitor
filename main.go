@@ -14,12 +14,22 @@
 			- upgrade available (boolean)
 			- upgrade version available
 			- service uptime?
+
+	configuration:
+		- address string:		the hostname/IP of the plex server
+		- port int:				the port plex runs on
+		- ignoressl bool: 		ignore invalid certificate
+		- loglevel string:		debug, error, info
+		- servicename string: 	plex service name
+		- servicecheck bool:	whether to check the service (if not run on plex server)
+
 */
 
 package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +38,9 @@ import (
 )
 
 func checkServiceSimple(service string) string {
+	// use os.exec to poll 'systemctl check' for service status
+	fmt.Printf("Checking status of service %s", service)
+
 	cmd := exec.Command("systemctl", "check", service)
 
 	out, err := cmd.CombinedOutput()
@@ -40,7 +53,8 @@ func checkServiceSimple(service string) string {
 			os.Exit(1)
 		}
 	}
-	fmt.Printf("%s\n", string(out))
+
+	fmt.Printf("Service [%v] status: %s\n", service, string(out))
 	return string(out)
 }
 
@@ -58,6 +72,20 @@ func response(output string) http.HandlerFunc {
 }
 
 func main() {
+	// get config file location from command line argument
+	configFile := flag.String("config.file", "", "Config file location")
+
+	flag.Parse()
+
+	type Config struct {
+		address      string
+		port         int
+		ignoreSSL    bool
+		logLevel     string
+		serviceName  string
+		serviceCheck bool
+	}
+
 	var serviceName string = "plexmediaserver"
 	var serviceStatus string
 
