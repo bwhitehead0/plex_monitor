@@ -86,6 +86,8 @@ func main() {
 		serviceCheck bool
 	}
 
+	var configuration Config
+
 	var serviceName string = "plexmediaserver"
 	var serviceStatus string
 
