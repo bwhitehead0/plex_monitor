@@ -23,6 +23,10 @@
 		- servicename string: 	plex service name
 		- servicecheck bool:	whether to check the service (if not run on plex server)
 
+	TODO:
+		- update fmt.Printf, fmt.Println etc to appropriate log level output
+		- update service check to accommodate different systems (windows, systemd, init)
+
 */
 
 package main
@@ -35,7 +39,18 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/BurntSushi/toml"
 )
+
+type Config struct {
+	plexAddress  string
+	plexPort     int
+	ignoreSSL    bool
+	logLevel     string
+	serviceName  string
+	serviceCheck bool
+}
 
 func checkServiceSimple(service string) string {
 	// use os.exec to poll 'systemctl check' for service status
@@ -77,16 +92,11 @@ func main() {
 
 	flag.Parse()
 
-	type Config struct {
-		address      string
-		port         int
-		ignoreSSL    bool
-		logLevel     string
-		serviceName  string
-		serviceCheck bool
-	}
+	fmt.Println("Using configuration file", *configFile)
 
 	var configuration Config
+
+	_, err := toml.Decode(*configFile, &configuration)
 
 	var serviceName string = "plexmediaserver"
 	var serviceStatus string
