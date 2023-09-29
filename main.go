@@ -26,6 +26,7 @@
 	TODO:
 		- update fmt.Printf, fmt.Println etc to appropriate log level output
 		- update service check to accommodate different systems (windows, systemd, init)
+		- replace TOML config with YAML
 
 */
 
@@ -40,16 +41,33 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v2"
+	//"github.com/BurntSushi/toml"
 )
 
-type Config struct {
-	plexAddress  string
-	plexPort     int
-	ignoreSSL    bool
-	logLevel     string
-	serviceName  string
-	serviceCheck bool
+type config struct {
+	PlexAddress  string `yaml:"PlexAddress"`
+	PlexPort     int    `yaml:"PlexPort"`
+	IgnoreSSL    bool   `yaml:"IgnoreSSL"`
+	LogLevel     string `yaml:"LogLevel"`
+	ServiceName  string `yaml:"ServiceName"`
+	ServiceCheck bool   `yaml:"ServiceCheck"`
+}
+
+func (configuration *config) readConfig(file string) *config {
+	// receiver function for configuration file, allows method readConfig(), ie configuration.readConfig()
+	fileContents, err := os.ReadFile(file)
+
+	if err != nil {
+		fmt.Printf("Error reading configuration file %s: %v", file, err)
+	}
+
+	err = yaml.Unmarshal(fileContents, configuration)
+	if err != nil {
+		fmt.Printf("Error parsing configuration file %s: %v", file, err)
+	}
+
+	return configuration
 }
 
 func checkServiceSimple(service string) string {
@@ -94,14 +112,17 @@ func main() {
 
 	fmt.Println("Using configuration file", *configFile)
 
-	var configuration Config
+	var configuration config
+	configuration.readConfig(*configFile)
 
-	_, err := toml.Decode(*configFile, &configuration)
+	//_, err := toml.Decode(*configFile, &configuration)
+
+	fmt.Printf("Configuration data:\n")
+	fmt.Println(configuration)
 
 	var serviceName string = "plexmediaserver"
-	var serviceStatus string
 
-	serviceStatus = checkServiceSimple(serviceName)
+	serviceStatus := checkServiceSimple(serviceName)
 	http.HandleFunc("/status", response(serviceStatus))
 
 	// response(serviceStatus)
@@ -109,9 +130,9 @@ func main() {
 	err := http.ListenAndServe(":33131", nil)
 
 	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server closed\n")
+		fmt.Printf("Server closed\n")
 	} else if err != nil {
-		fmt.Printf("error starting server: %s\n", err)
+		fmt.Printf("Error starting server: %s\n", err)
 		os.Exit(1)
 	}
 }

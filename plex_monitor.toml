@@ -1,8 +1,0 @@
-# example TOML config file for plex_monitor
-
-plex_address = "plex01.fw.home"
-plex_port = 32400
-ignoreSSL = true
-log_level = "error"
-serviceName = "plexmediaserver"
-serviceCheck = false
