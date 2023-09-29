@@ -1,4 +1,4 @@
-PlexAddress: "plex01.fw.home"
+PlexAddress: "https://plex01.fw.home"
 PlexPort: 32400
 IgnoreSSL: true
 LogLevel: "error"

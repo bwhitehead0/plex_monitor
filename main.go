@@ -10,7 +10,7 @@
 	- 	[url:33131]/health
 		reply with JSON output for additional info
 			- service status (up/down)
-			- version
+			- version (example version: 1.32.5.7516-8f4248874 - need to drop from hyphen on)
 			- upgrade available (boolean)
 			- upgrade version available
 			- service uptime?
@@ -23,16 +23,17 @@
 		- servicename string: 	plex service name
 		- servicecheck bool:	whether to check the service (if not run on plex server)
 
-	TODO:
+	TODO:a
 		- update fmt.Printf, fmt.Println etc to appropriate log level output
 		- update service check to accommodate different systems (windows, systemd, init)
-		- replace TOML config with YAML
+		- WIP replace TOML config with YAML
 
 */
 
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -40,9 +41,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 
 	"gopkg.in/yaml.v2"
-	//"github.com/BurntSushi/toml"
 )
 
 type config struct {
@@ -55,7 +56,7 @@ type config struct {
 }
 
 func (configuration *config) readConfig(file string) *config {
-	// receiver function for configuration file, allows method readConfig(), ie configuration.readConfig()
+	// receiver function for configuration file, allows method readConfig(), ie configuration.readConfig(file)
 	fileContents, err := os.ReadFile(file)
 
 	if err != nil {
@@ -72,7 +73,7 @@ func (configuration *config) readConfig(file string) *config {
 
 func checkServiceSimple(service string) string {
 	// use os.exec to poll 'systemctl check' for service status
-	fmt.Printf("Checking status of service %s", service)
+	fmt.Printf("Checking status of service %s\n", service)
 
 	cmd := exec.Command("systemctl", "check", service)
 
@@ -82,7 +83,7 @@ func checkServiceSimple(service string) string {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			fmt.Printf("systemctl finished with non-zero: %v\n", exitErr)
 		} else {
-			fmt.Printf("failed to run systemctl: %v", err)
+			fmt.Printf("failed to run systemctl: %v\n", err)
 			os.Exit(1)
 		}
 	}
@@ -104,7 +105,47 @@ func response(output string) http.HandlerFunc {
 	}
 }
 
+func pollPlexAPI(endpoint string, ignoreSSL bool) string {
+	// function might need to be reevaluated for efficiency
+	var response *http.Response
+	var err error
+
+	if ignoreSSL {
+		fmt.Printf("IgnoreSSL is set to %t\n", ignoreSSL)
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr}
+		response, err = client.Get(endpoint)
+		if err != nil {
+			fmt.Println(err)
+		}
+		responseData, err := io.ReadAll(response.Body)
+		if err != nil {
+			fmt.Printf("Error reading response: %v", err)
+		}
+		fmt.Println(string(responseData))
+		bodyString := string(responseData)
+		return bodyString
+	} else {
+		fmt.Printf("IgnoreSSL is set to %t\n", ignoreSSL)
+		response, err = http.Get(endpoint)
+		if err != nil {
+			fmt.Printf("Error connecting to endpoint %s: %s", endpoint, err.Error())
+			os.Exit(1)
+		}
+		responseData, err := io.ReadAll(response.Body)
+		if err != nil {
+			fmt.Printf("Error reading response: %v", err)
+		}
+		fmt.Println(string(responseData))
+		bodyString := string(responseData)
+		return bodyString
+	}
+}
+
 func main() {
+	plexAPIPath := "/identity"
 	// get config file location from command line argument
 	configFile := flag.String("config.file", "", "Config file location")
 
@@ -115,11 +156,19 @@ func main() {
 	var configuration config
 	configuration.readConfig(*configFile)
 
-	//_, err := toml.Decode(*configFile, &configuration)
-
 	fmt.Printf("Configuration data:\n")
-	fmt.Println(configuration)
+	fmt.Printf("%+v\n", configuration)
 
+	// build full API endpoint, convert int port to string with strconv.Itoa
+	plexAPIEndpoint := configuration.PlexAddress + ":" + strconv.Itoa(configuration.PlexPort) + plexAPIPath
+
+	fmt.Printf("Would check API endpoint %s\n", plexAPIEndpoint)
+
+	plexAPIResponse := pollPlexAPI(plexAPIEndpoint, configuration.IgnoreSSL)
+	fmt.Printf("Response: ")
+	//fmt.Println(string(plexAPIResponse))
+
+	// check local service stuff
 	var serviceName string = "plexmediaserver"
 
 	serviceStatus := checkServiceSimple(serviceName)
