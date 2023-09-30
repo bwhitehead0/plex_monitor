@@ -5,15 +5,16 @@
 	at minimum should provide the following endpoints:
 	-	[url:33131]/status
 		reply with HTTP 200 for service up, 500 or service down
+	-	DROPPING THIS, /status WILL REPORT THE BELOW
 
 	optional:
 	- 	[url:33131]/health
 		reply with JSON output for additional info
-			- service status (up/down)
+			- service status (up/down) - based on connection to API endpoint
 			- version (example version: 1.32.5.7516-8f4248874 - need to drop from hyphen on)
-			- upgrade available (boolean)
-			- upgrade version available
-			- service uptime?
+			- TODO: upgrade available (boolean)
+			- TODO: upgrade version available
+			- service uptime? DROPPING REQUIREMENT AS NOT NECESSARILY RUNNING LOCALLY
 
 	configuration:
 		- address string:		the hostname/IP of the plex server
@@ -25,8 +26,8 @@
 
 	TODO:a
 		- update fmt.Printf, fmt.Println etc to appropriate log level output
-		- update service check to accommodate different systems (windows, systemd, init)
-		- WIP replace TOML config with YAML
+		- update service check to accommodate different systems (windows, systemd, init) DROPPING
+		- DONE replace TOML config with YAML
 
 */
 
@@ -34,16 +35,21 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
+
+	// "os/exec"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v2"
+	// "honnef.co/go/tools/lintcmd/version"
 )
 
 type config struct {
@@ -54,6 +60,19 @@ type config struct {
 	ServiceName  string `yaml:"ServiceName"`
 	ServiceCheck bool   `yaml:"ServiceCheck"`
 }
+
+type plexResponse struct {
+	// <MediaContainer size="0" claimed="1" machineIdentifier="ee21adef9947973bc9d5563b65157d96a81ba7e3" version="1.32.5.7516-8f4248874"> </MediaContainer>
+	MediaContainer    string `xml:",chardata"`
+	Size              int    `xml:"size,attr"`
+	Claimed           int    `xml:"claimed,attr"`
+	MachineIdentifier string `xml:"machineIdentifier,attr"`
+	Version           string `xml:"version,attr"`
+}
+
+// type jsonResponse struct {
+
+// }
 
 func (configuration *config) readConfig(file string) *config {
 	// receiver function for configuration file, allows method readConfig(), ie configuration.readConfig(file)
@@ -71,26 +90,26 @@ func (configuration *config) readConfig(file string) *config {
 	return configuration
 }
 
-func checkServiceSimple(service string) string {
-	// use os.exec to poll 'systemctl check' for service status
-	fmt.Printf("Checking status of service %s\n", service)
+// func checkServiceSimple(service string) string {
+// 	// use os.exec to poll 'systemctl check' for service status
+// 	fmt.Printf("Checking status of service %s\n", service)
 
-	cmd := exec.Command("systemctl", "check", service)
+// 	cmd := exec.Command("systemctl", "check", service)
 
-	out, err := cmd.CombinedOutput()
+// 	out, err := cmd.CombinedOutput()
 
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			fmt.Printf("systemctl finished with non-zero: %v\n", exitErr)
-		} else {
-			fmt.Printf("failed to run systemctl: %v\n", err)
-			os.Exit(1)
-		}
-	}
+// 	if err != nil {
+// 		if exitErr, ok := err.(*exec.ExitError); ok {
+// 			fmt.Printf("systemctl finished with non-zero: %v\n", exitErr)
+// 		} else {
+// 			fmt.Printf("failed to run systemctl: %v\n", err)
+// 			os.Exit(1)
+// 		}
+// 	}
 
-	fmt.Printf("Service [%v] status: %s\n", service, string(out))
-	return string(out)
-}
+// 	fmt.Printf("Service [%v] status: %s\n", service, string(out))
+// 	return string(out)
+// }
 
 // func simpleResponse(w http.ResponseWriter, r *http.Request, status string) {
 // 	fmt.Printf("got /status request\n")
@@ -118,11 +137,13 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 		client := &http.Client{Transport: tr}
 		response, err = client.Get(endpoint)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("Error connecting to endpoint %s: %s\n", endpoint, err.Error())
+			return "-1"
 		}
 		responseData, err := io.ReadAll(response.Body)
 		if err != nil {
-			fmt.Printf("Error reading response: %v", err)
+			fmt.Printf("Error reading response: %v\n", err.Error())
+			return "-1"
 		}
 		fmt.Println(string(responseData))
 		bodyString := string(responseData)
@@ -131,12 +152,13 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 		fmt.Printf("IgnoreSSL is set to %t\n", ignoreSSL)
 		response, err = http.Get(endpoint)
 		if err != nil {
-			fmt.Printf("Error connecting to endpoint %s: %s", endpoint, err.Error())
-			os.Exit(1)
+			fmt.Printf("Error connecting to endpoint %s: %s\n", endpoint, err.Error())
+			return "-1"
 		}
 		responseData, err := io.ReadAll(response.Body)
 		if err != nil {
-			fmt.Printf("Error reading response: %v", err)
+			fmt.Printf("Error reading response: %v\n", err.Error())
+			return "-1"
 		}
 		fmt.Println(string(responseData))
 		bodyString := string(responseData)
@@ -146,6 +168,8 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 
 func main() {
 	plexAPIPath := "/identity"
+	var endpointStatus string = "Down"
+	var decodedResponse plexResponse
 	// get config file location from command line argument
 	configFile := flag.String("config.file", "", "Config file location")
 
@@ -162,21 +186,41 @@ func main() {
 	// build full API endpoint, convert int port to string with strconv.Itoa
 	plexAPIEndpoint := configuration.PlexAddress + ":" + strconv.Itoa(configuration.PlexPort) + plexAPIPath
 
-	fmt.Printf("Would check API endpoint %s\n", plexAPIEndpoint)
+	fmt.Printf("Checking API endpoint %s\n", plexAPIEndpoint)
 
 	plexAPIResponse := pollPlexAPI(plexAPIEndpoint, configuration.IgnoreSSL)
-	fmt.Printf("Response: ")
+	if plexAPIResponse != "-1" {
+		endpointStatus = "Up"
+	}
+	//fmt.Printf("Response: ")
 	//fmt.Println(string(plexAPIResponse))
 
-	// check local service stuff
-	var serviceName string = "plexmediaserver"
+	xml.Unmarshal([]byte(plexAPIResponse), &decodedResponse)
 
-	serviceStatus := checkServiceSimple(serviceName)
-	http.HandleFunc("/status", response(serviceStatus))
+	// check local service stuff
+	//var serviceName string = "plexmediaserver"
+
+	plexVersion := strings.Split(decodedResponse.Version, "-")[0]
+
+	//serviceStatus := checkServiceSimple(serviceName)
+
+	// build JSON response
+	jsonResponse, err := json.Marshal(map[string]interface{}{
+		"Status":  endpointStatus,
+		"Version": plexVersion,
+	})
+
+	if err != nil {
+		fmt.Printf("could not marshal json: %s\n", err)
+		return
+	}
+
+	fmt.Printf("json data: %s\n", jsonResponse)
 
 	// response(serviceStatus)
+	http.HandleFunc("/status", response(string(jsonResponse)))
 
-	err := http.ListenAndServe(":33131", nil)
+	err = http.ListenAndServe(":33131", nil)
 
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("Server closed\n")
