@@ -12,7 +12,9 @@ sast:
   stage: test
 include:
 - template: Security/SAST.gitlab-ci.yml
-secret-scan:
+- template: Security/Secret-Detection.gitlab-ci.yml
+gitleaks:
+  stage: secret-scan
   extends: .secret-analyzer
   variables:
     GIT_DEPTH: 100
