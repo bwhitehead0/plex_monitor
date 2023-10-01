@@ -13,7 +13,7 @@ sast:
 include:
 - template: Security/SAST.gitlab-ci.yml
 - template: Security/Secret-Detection.gitlab-ci.yml
-gitleaks:
+secret_detection:
   stage: secret-scan
   extends: .secret-analyzer
   variables:
