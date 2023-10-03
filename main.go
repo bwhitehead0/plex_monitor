@@ -14,17 +14,22 @@
 		- address string:		the hostname/IP of the plex server
 		- port int:				the port plex runs on
 		- ignoressl bool: 		ignore invalid certificate, etc
+		- listen port:			TCP port for this API endpoint
+		- listen address:		IP address for this API to bind to
 
 	TODO:
 		- DONE update fmt.Printf, fmt.Println etc to stderr, etc
 		- add debug logging
 		- add config option to check for updates
+		- DONE add listen address
 		- DONE add config option for port to listen on
-		- track duration (receive request, poll API, respond)
+		- DONE track duration (startup, poll API, etc)
 		- move startup stuff, sanity checks, etc into init() function
-		- note request time in JSON payload response
-		- fix http request not updating status (wrapper function?)
-
+		- DONE note request time in JSON payload response
+		- DONE fix http request not updating status (wrapper function?)
+		- DONE move tasks to functions (xml parsing, etc)
+		- DONE Intercept ctrl-c/sigint for graceful shutdown.
+		- fix startup time formatting?
 */
 
 package main
@@ -35,13 +40,17 @@ import (
 	"encoding/xml"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -74,13 +83,13 @@ func (configuration *config) readConfig(file string) *config {
 	fileContents, err := os.ReadFile(file)
 
 	if err != nil {
-		logger.Printf("Error reading configuration file %s: %v", file, err)
+		logger.Printf("Error reading configuration file %s: %v\n", file, err)
 		os.Exit(1)
 	}
 
 	err = yaml.Unmarshal(fileContents, configuration)
 	if err != nil {
-		logger.Printf("Error parsing configuration file %s: %v", file, err)
+		logger.Printf("Error parsing configuration file %s: %v\n", file, err)
 		os.Exit(1)
 	}
 
@@ -97,9 +106,15 @@ func (configuration *config) readConfig(file string) *config {
 	return configuration
 }
 
-func response(output string) http.HandlerFunc {
+func response(endpoint string, ignoreSSL bool) http.HandlerFunc {
 	// using a wrapped handler https://go-cloud-native.com/golang/pass-arguments-to-http-handlers-in-go
 	return func(w http.ResponseWriter, r *http.Request) {
+		sourceIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			logger.Printf("Error getting client IP.\n")
+		}
+		output := getResponse(endpoint, ignoreSSL, sourceIP)
+
 		io.WriteString(w, output)
 	}
 }
@@ -119,7 +134,7 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 		client := &http.Client{Transport: tr}
 		response, err = client.Get(endpoint)
 		if err != nil {
-			logger.Printf("Error connecting to endpoint %s: %s\n", endpoint, err.Error())
+			logger.Printf("Error connecting to endpoint: %s\n", err.Error())
 			return "-1"
 		}
 		responseData, err := io.ReadAll(response.Body)
@@ -134,7 +149,7 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 		// validate TLS
 		response, err = http.Get(endpoint)
 		if err != nil {
-			logger.Printf("Error connecting to endpoint %s: %s\n", endpoint, err.Error())
+			logger.Printf("Error connecting to endpoint: %s\n", err.Error())
 			return "-1"
 		}
 		responseData, err := io.ReadAll(response.Body)
@@ -148,11 +163,67 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 	}
 }
 
-func main() {
-	//time.Sleep(100 * time.Millisecond)
-	plexAPIPath := "/identity"
-	var endpointStatus string = "Down"
+func convertToJson(apiResponse string, requestDuration time.Duration, requestStart time.Time, sourceIP string) string {
 	var decodedResponse plexResponse
+	var endpointStatus string = "Down"
+
+	// apiResponse from pollPlexAPI()
+	if apiResponse != "-1" {
+		endpointStatus = "Up"
+	}
+
+	xml.Unmarshal([]byte(apiResponse), &decodedResponse)
+
+	plexVersion := strings.Split(decodedResponse.Version, "-")[0]
+
+	// build JSON response
+	jsonResponse, err := json.Marshal(map[string]interface{}{
+		"Status":          endpointStatus,
+		"Version":         plexVersion,
+		"RequestDuration": requestDuration.Milliseconds(),
+		"RequestTime":     requestStart.UTC(),
+		"SourceIP":        sourceIP,
+	})
+
+	if err != nil {
+		logger.Printf("Error building response: %s\n", err)
+		jsonResponse := "{" + "\"Error\": " + "\"" + err.Error() + "\"}"
+		logger.Printf("JSON response: %s\n", jsonResponse)
+		return string(jsonResponse)
+	}
+
+	logger.Printf("JSON response: %s\n", jsonResponse)
+	return string(jsonResponse)
+}
+
+func getResponse(endpoint string, ignoreSSL bool, sourceIP string) string {
+	// continue here
+	logger.Printf("Received request for endpoint '/status' from %s\n", sourceIP)
+	logger.Printf("Checking API endpoint %s\n", endpoint)
+	var requestStart = time.Now()
+	apiResponse := pollPlexAPI(endpoint, ignoreSSL)
+	var requestDuration = time.Since(requestStart)
+
+	jsonResult := convertToJson(apiResponse, requestDuration, requestStart.UTC(), sourceIP)
+
+	return jsonResult
+}
+
+func main() {
+
+	// capture sigint, sigterm
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan bool, 1)
+	go func() {
+		sig := <-signals
+		//fmt.Println()
+		fmt.Printf("Received %s signal. Exiting.\n", sig)
+		os.Exit(0)
+		done <- true
+	}()
+
+	plexAPIPath := "/identity"
 	// get config file location from command line argument
 	configFile := flag.String("config.file", "", "Config file location")
 
@@ -162,6 +233,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error finding config file %s: %s\n", *configFile, err)
 	}
+
 	logger.Println("Using configuration file", configFullPath)
 
 	var configuration config
@@ -174,32 +246,7 @@ func main() {
 	// build full API endpoint, convert int port to string with strconv.Itoa
 	plexAPIEndpoint := configuration.PlexAddress + ":" + strconv.Itoa(configuration.PlexPort) + plexAPIPath
 
-	logger.Printf("Checking API endpoint %s\n", plexAPIEndpoint)
-
-	var requestStart = time.Now()
-	plexAPIResponse := pollPlexAPI(plexAPIEndpoint, configuration.IgnoreSSL)
-	time.Sleep(4 * time.Second)
-	var requestDuration = time.Since(requestStart)
-
-	logger.Printf("API request duration: %s\n", requestDuration)
-	if plexAPIResponse != "-1" {
-		endpointStatus = "Up"
-	}
-
-	xml.Unmarshal([]byte(plexAPIResponse), &decodedResponse)
-
-	plexVersion := strings.Split(decodedResponse.Version, "-")[0]
-
-	// build JSON response
-	jsonResponse, err := json.Marshal(map[string]interface{}{
-		"Status":          endpointStatus,
-		"Version":         plexVersion,
-		"RequestDuration": requestDuration,
-	})
-
-	logger.Printf("JSON response: %s\n", jsonResponse)
-
-	http.HandleFunc("/status", response(string(jsonResponse)))
+	http.HandleFunc("/status", response(plexAPIEndpoint, configuration.IgnoreSSL))
 
 	err = http.ListenAndServe(fullListenAddress, nil)
 
@@ -209,4 +256,6 @@ func main() {
 		logger.Printf("Error starting server: %s\n", err)
 		os.Exit(1)
 	}
+
+	<-done
 }
