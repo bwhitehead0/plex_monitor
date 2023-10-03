@@ -182,7 +182,6 @@ func convertToJson(apiResponse string, requestDuration time.Duration, requestSta
 		"Version":         plexVersion,
 		"RequestDuration": requestDuration.Milliseconds(),
 		"RequestTime":     requestStart.UTC(),
-		"SourceIP":        sourceIP,
 	})
 
 	if err != nil {
