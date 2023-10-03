@@ -2,4 +2,4 @@ PlexAddress: "https://" # Your Plex URL
 PlexPort: 32400 # Your Plex port
 IgnoreSSL: true # Ignore SSL errors - true/false
 ListenAddress: # Default to 0.0.0.0
-ListenPort:  # Port for plex_monitor to listenon
+ListenPort: # Port for plex_monitor to listen on
