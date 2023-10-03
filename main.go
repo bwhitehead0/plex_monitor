@@ -163,7 +163,7 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 	}
 }
 
-func convertToJson(apiResponse string, requestDuration time.Duration, requestStart time.Time, sourceIP string) string {
+func convertToJson(apiResponse string, requestDuration time.Duration, requestStart time.Time) string {
 	var decodedResponse plexResponse
 	var endpointStatus string = "Down"
 
@@ -182,7 +182,6 @@ func convertToJson(apiResponse string, requestDuration time.Duration, requestSta
 		"Version":         plexVersion,
 		"RequestDuration": requestDuration.Milliseconds(),
 		"RequestTime":     requestStart.UTC(),
-		"SourceIP":        sourceIP,
 	})
 
 	if err != nil {
@@ -204,7 +203,7 @@ func getResponse(endpoint string, ignoreSSL bool, sourceIP string) string {
 	apiResponse := pollPlexAPI(endpoint, ignoreSSL)
 	var requestDuration = time.Since(requestStart)
 
-	jsonResult := convertToJson(apiResponse, requestDuration, requestStart.UTC(), sourceIP)
+	jsonResult := convertToJson(apiResponse, requestDuration, requestStart.UTC())
 
 	return jsonResult
 }
