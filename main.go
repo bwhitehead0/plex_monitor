@@ -29,7 +29,7 @@
 		- DONE fix http request not updating status (wrapper function?)
 		- DONE move tasks to functions (xml parsing, etc)
 		- DONE Intercept ctrl-c/sigint for graceful shutdown.
-		- fix startup time formatting?
+		- fix startup time formatting? (sometimes in nanoseconds/microseconds)
 */
 
 package main
@@ -58,6 +58,7 @@ import (
 
 var logger = log.New(os.Stderr, "", 5)
 var startTime = time.Now()
+var appVersion = "0.1.0"
 
 type config struct {
 	PlexAddress   string `yaml:"PlexAddress"`
@@ -104,6 +105,16 @@ func (configuration *config) readConfig(file string) *config {
 	}
 
 	return configuration
+}
+
+func isFlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
 
 func response(endpoint string, ignoreSSL bool) http.HandlerFunc {
@@ -192,7 +203,7 @@ func convertToJson(apiResponse string, requestDuration time.Duration, requestSta
 	}
 
 	logger.Printf("JSON response: %s\n", jsonResponse)
-	return string(jsonResponse)
+	return string(jsonResponse) + "\n"
 }
 
 func getResponse(endpoint string, ignoreSSL bool, sourceIP string) string {
@@ -209,7 +220,7 @@ func getResponse(endpoint string, ignoreSSL bool, sourceIP string) string {
 }
 
 func main() {
-
+	plexAPIPath := "/identity"
 	// capture sigint, sigterm
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -217,16 +228,28 @@ func main() {
 	go func() {
 		sig := <-signals
 		//fmt.Println()
-		fmt.Printf("Received %s signal. Exiting.\n", sig)
+		if sig == os.Interrupt {
+			// if sigint / ctrl-c
+			fmt.Print("\r") // so we don't write ^C to terminal on sigint
+		}
+		logger.Printf("Received %s signal. Exiting.\n", sig)
 		os.Exit(0)
 		done <- true
 	}()
 
-	plexAPIPath := "/identity"
 	// get config file location from command line argument
 	configFile := flag.String("config.file", "", "Config file location")
 
 	flag.Parse()
+
+	if !isFlagPassed("config.file") {
+		// missing config.file flag
+		logger.Printf("Error: configuration file not specified.\n")
+		os.Exit(1)
+	}
+
+	logger.Printf("Plex Monitor v%s starting up.", appVersion)
+
 	configFullPath, err := filepath.Abs(*configFile)
 
 	if err != nil {

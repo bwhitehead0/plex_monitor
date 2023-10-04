@@ -1,0 +1,14 @@
+[Unit]
+Description=Plex Monitor
+Documentation=https://github.com/bwhitehead0/plex_monitor
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/plex_monitor --config.file=/etc/plex_monitor.yaml
+Restart=on-failure
+StandardOutput=file:/var/log/plex_monitor.log
+StandardError=file:/var/log/plex_monitor.log
+
+[Install]
+WantedBy=multi-user.target
+Alias=plex_monitor.service
