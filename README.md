@@ -1,11 +1,16 @@
 # Plex Monitor
 
-plex_monitor is a simple status monitor for Plex written in Go that polls the Plex API to return the following data:
+[![gitleaks](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml) [![govulncheck](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml)
+<hr>
 
-- Request Duration - Time elapsed for polling Plex API endpoint
-- Request Time - Timestamp for the request
-- Status - Up or Down
-- Version - Plex version reported by API
+plex_monitor is a simple status monitor for Plex written in Go.
+
+It polls the Plex API to return the following data:
+
+- **Request Duration** - Time elapsed in milliseconds for polling Plex API endpoint
+- **Request Time** - Timestamp for the request from `plex_monitor` to Plex API
+- **Status** - Up or Down
+- **Version** - Plex version reported by API
 
 This application polls API endpoint `/identity`, for example https://your.plexserver.com:32400/identity
 
@@ -79,4 +84,4 @@ go build main.go -o plex_monitor plex_monitor
 
 - Accept parameters in lieu of config file.
 - Find new flag package for easier extensibility and more flexibility.
-- Provide more user friendly help output with `-h` flag
+- Provide more user friendly help output with `-h` flag (dependent on new flag package)

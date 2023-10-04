@@ -1,9 +1,9 @@
-name: Create Release and Assets
+name: Create Pre-Release and Assets
 on:
   push:
     # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*-rc*' # Push events to matching v*-rc*, i.e. v1.0.0-rc.1 (v 1.0.0 release candidate 1)
 
 permissions:
     contents: write
@@ -29,7 +29,7 @@ jobs:
             - First Change
             - Second Change
           draft: false
-          prerelease: false
+          prerelease: true
 
   releases-matrix:
     name: Release Go Binary
