@@ -6,8 +6,8 @@ After=network.target
 [Service]
 ExecStart=/usr/local/bin/plex_monitor --config.file=/etc/plex_monitor.yaml
 Restart=on-failure
-StandardOutput=file:/var/log/plex_monitor.log
-StandardError=file:/var/log/plex_monitor.log
+StandardOutput=append:/var/log/plex_monitor.log
+StandardError=append:/var/log/plex_monitor.log
 
 [Install]
 WantedBy=multi-user.target
