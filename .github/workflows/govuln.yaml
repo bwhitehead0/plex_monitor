@@ -1,9 +1,10 @@
+name: govulncheck
 on: [push]
 
 jobs:
   govulncheck_job:
     runs-on: ubuntu-latest
-    name: Run govulncheck
+    name: Run govulnchecks
     steps:
       - id: govulncheck
         uses: golang/govulncheck-action@v1

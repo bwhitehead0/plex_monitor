@@ -1,6 +1,6 @@
 # Plex Monitor
 
-[![gitleaks](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml)
+[![gitleaks](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml) [![govulncheck](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml)
 <hr>
 
 plex_monitor is a simple status monitor for Plex written in Go.
