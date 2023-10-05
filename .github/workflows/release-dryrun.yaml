@@ -1,0 +1,52 @@
+name: Create Release and Assets (Dry Run)
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    branches: ["develop"]
+  pull_request:
+    branches: ["develop"]
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+  create-github-release-:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Read CHANGELOG data
+      # https://medium.com/@ibraheemabukaff/github-actions-exporting-multi-line-one-line-value-environment-variable-5bb86d01e866
+        run: |
+          changelog_text=$(cat "${{ github.workspace }}/CHANGELOG")
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          echo $changelog_text >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Echo CHANGELOG
+        run: |
+          echo "CHANGELOG read from file as:"
+          echo ${{ env.CHANGELOG }}
+
+  releases-matrix:
+    name: Release Go Binary Dry Run
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: "darwin/amd64","freebsd/amd64","freebsd/arm64","freebsd/arm","linux/amd64","linux/arm","linux/arm64","openbsd/amd64","openbsd/arm64","openbsd/arm","windows/amd64"
+        goos: [linux, windows, darwin, freebsd, openbsd]
+        goarch: [amd64, arm64, arm]
+        exclude:
+          - goarch: arm64
+            goos: windows
+          - goarch: arm
+            goos: windows
+          - goarch: arm64
+            goos: darwin
+          - goarch: arm
+            goos: darwin
+    steps:
+    - uses: actions/checkout@v3
+    - name: Echo build architectures
+      run: echo "Dry Run build - ${{ matrix.goos }}/${{ matrix.goarch }}"
