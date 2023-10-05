@@ -27,7 +27,7 @@ jobs:
       - name: Echo CHANGELOG
         run: |
           echo "CHANGELOG read from file as:"
-          echo ${{ env.CHANGELOG }}
+          echo "${{ env.CHANGELOG }}"
 
   releases-matrix:
     name: Release Go Binary Dry Run
