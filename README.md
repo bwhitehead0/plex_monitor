@@ -98,3 +98,4 @@ go build main.go -o plex_monitor plex_monitor
 - Accept parameters in lieu of config file.
 - Find new flag package for easier extensibility and more flexibility.
 - Provide more user friendly help output with `-h` flag (dependent on new flag package)
+- Docker images
