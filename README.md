@@ -1,6 +1,6 @@
 # Plex Monitor
 
-[![gitleaks](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml) [![govulncheck](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml)
+[![gitleaks](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/gitleaks.yaml) [![govulncheck](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/govuln.yaml) [![Create Release and Assets](https://github.com/bwhitehead0/plex_monitor/actions/workflows/release.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/release.yaml) [![Create Pre-Release and Assets](https://github.com/bwhitehead0/plex_monitor/actions/workflows/pre-release.yaml/badge.svg)](https://github.com/bwhitehead0/plex_monitor/actions/workflows/pre-release.yaml)
 <hr>
 
 plex_monitor is a simple status monitor for Plex written in Go.
@@ -31,7 +31,7 @@ Plex Monitor responds with a JSON payload, for example:
 Or, if the Plex API endpoint does not respond:
 
 ```json
-{"RequestDuration":23,"RequestTime":"2023-10-03T18:34:15.126480975Z","Status":"Down","Version":""}
+{"RequestDuration":23,"RequestTime":"2023-10-03T18:34:15.126480975Z","Status":"1","Version":""}
 ```
 
 ## Installation and Usage
@@ -43,21 +43,29 @@ An example systemd unit file can be found in the `/resources` folder.
 Plex Monitor logs to `stderr`, for example:
 
 ```
-2023/10/03 21:15:18.520198 Plex Monitor v0.1.0 starting up.
-2023/10/03 21:15:18.520933 Using configuration file /testing/plex_monitor.yaml
-2023/10/03 21:15:18.595644 Using default listen Address 0.0.0.0
-2023/10/03 21:15:18.595682 Using default listen port 33131
-2023/10/03 21:15:18.595699 Startup time elapsed: 75.502074ms
-2023/10/03 21:15:39.378319 Received request for endpoint '/status' from 127.0.0.1
-2023/10/03 21:15:39.378366 Checking API endpoint https://plex01:32400/identity
-2023/10/03 21:15:39.378374 IgnoreSSL is set to true
-2023/10/03 21:15:39.409835 JSON response: {"RequestDuration":31,"RequestTime":"2023-10-04T02:15:39.378373798Z","Status":"Up","Version":"1.32.5.7516"}
-2023/10/03 21:21:14.126986 Received request for endpoint '/status' from 192.168.1.97
-2023/10/03 21:21:14.127028 Checking API endpoint https://plex01:32400/identity
-2023/10/03 21:21:14.127036 IgnoreSSL is set to true
-2023/10/03 21:21:14.143557 Error connecting to endpoint: Get "https://plex01:32400/identity": dial tcp 192.168.1.119:32400: connect: connection refused
-2023/10/03 21:21:14.143627 JSON response: {"RequestDuration":16,"RequestTime":"2023-10-04T02:21:14.127036336Z","Status":"Down","Version":""}
-2023/10/03 21:21:38.703434 Received terminated signal. Exiting.
+2023/10/04 21:16:52.782045 Plex Monitor v0.1.1 starting up.
+2023/10/04 21:16:52.782328 Using configuration file /testing/plex_monitor.yaml
+2023/10/04 21:16:52.782661 Using default listen Address 0.0.0.0
+2023/10/04 21:16:52.782678 Using default listen port 33131
+2023/10/04 21:16:52.782686 Startup time elapsed: 1.196292ms
+2023/10/04 21:16:52.782698 IgnoreSSL is set to true
+2023/10/04 21:16:56.837337 Received request for endpoint '/status' from 192.168.1.119
+2023/10/04 21:16:56.837372 Checking API endpoint https://plex01:32400/identity
+2023/10/04 21:16:56.870147 API request completed in 32
+2023/10/04 21:16:56.870335 JSON response: {"RequestDuration":32,"RequestTime":"2023-10-05T02:16:56.837384061Z","Status":0,"Version":"1.32.5.7516"}
+2023/10/04 21:17:03.251391 Received request for endpoint '/health' from 192.168.1.97
+2023/10/04 21:17:03.251424 Checking API endpoint https://plex01:32400/identity
+2023/10/04 21:17:03.273992 API request completed in 22
+2023/10/04 21:17:03.274022 Returning status 200.
+2023/10/04 21:17:04.846245 Received request for endpoint '/status' from 192.168.1.97
+2023/10/04 21:17:04.846273 Checking API endpoint https://plex01:32400/identity
+2023/10/04 21:17:04.869583 API request completed in 23
+2023/10/04 21:17:04.869701 JSON response: {"RequestDuration":23,"RequestTime":"2023-10-05T02:17:04.846284929Z","Status":0,"Version":"1.32.5.7516"}
+2023/10/04 21:17:11.356157 Received request for endpoint '/health' from 192.168.1.119
+2023/10/04 21:17:11.356187 Checking API endpoint https://plex01:32400/identity
+2023/10/04 21:17:11.378328 API request completed in 22
+2023/10/04 21:17:11.378357 Returning status 200.
+2023/10/04 21:17:30.951365 Received terminated signal. Exiting.
 ```
 
 ### Configuration
