@@ -58,7 +58,7 @@ import (
 
 var logger = log.New(os.Stderr, "", 5)
 var startTime = time.Now()
-var appVersion = "0.1.0"
+var appVersion = "0.1.1"
 
 type config struct {
 	PlexAddress   string `yaml:"PlexAddress"`
