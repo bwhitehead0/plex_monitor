@@ -21,11 +21,16 @@ The Plex server responds with an XML payload such as:
 ```xml
 <MediaContainer size="0" claimed="1" machineIdentifier="ee2e37973bc957d96a81bad551adef994763b651" version="1.32.5.7516-8f4248874"> </MediaContainer>
 ```
+#### Endpoints
 
-Plex Monitor responds with a JSON payload, for example:
+Plex Monitor responds on two endpoints: `/health` and `/status`.
+
+`/health` returns either a HTTP 200 or 503 response, 200 if Plex is up, 503 if Plex is down.
+
+`/status` returns a JSON payload with `"Status": "0"` for status up, and `"Status:: "1"` for down. For example:
 
 ```json
-{"RequestDuration":43,"RequestTime":"2023-10-03T06:45:33.198734666Z","Status":"Up","Version":"1.32.5.7516"}
+{"RequestDuration":43,"RequestTime":"2023-10-03T06:45:33.198734666Z","Status":"0","Version":"1.32.5.7516"}
 ```
 
 Or, if the Plex API endpoint does not respond:
