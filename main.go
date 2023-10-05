@@ -58,7 +58,7 @@ import (
 
 var logger = log.New(os.Stderr, "", 5)
 var startTime = time.Now()
-var appVersion = "0.1.0"
+var appVersion = "0.1.1"
 
 type config struct {
 	PlexAddress   string `yaml:"PlexAddress"`
@@ -117,16 +117,49 @@ func isFlagPassed(name string) bool {
 	return found
 }
 
-func response(endpoint string, ignoreSSL bool) http.HandlerFunc {
+func statusResponse(endpoint string, ignoreSSL bool) http.HandlerFunc {
 	// using a wrapped handler https://go-cloud-native.com/golang/pass-arguments-to-http-handlers-in-go
 	return func(w http.ResponseWriter, r *http.Request) {
 		sourceIP, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			logger.Printf("Error getting client IP.\n")
 		}
+
+		// set content-type to json
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		output := getResponse(endpoint, ignoreSSL, sourceIP)
 
 		io.WriteString(w, output)
+	}
+}
+
+func healthResponse(endpoint string, ignoreSSL bool) http.HandlerFunc {
+	// using a wrapped handler https://go-cloud-native.com/golang/pass-arguments-to-http-handlers-in-go
+	returnCode := http.StatusServiceUnavailable
+	return func(w http.ResponseWriter, r *http.Request) {
+		sourceIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			logger.Printf("Error getting client IP.\n")
+		}
+
+		logger.Printf("Received request for endpoint '/health' from %s\n", sourceIP)
+		logger.Printf("Checking API endpoint %s\n", endpoint)
+
+		// just poll the API directly, no need for the getResponse(), convertToJson() stuff
+		var requestStart = time.Now()
+		apiResponse := pollPlexAPI(endpoint, ignoreSSL)
+		var requestDuration = time.Since(requestStart)
+
+		logger.Printf("API request completed in %v\n", requestDuration.Milliseconds())
+
+		if strings.Contains(apiResponse, "MediaContainer") {
+			// received XML payload back from Plex
+			returnCode = http.StatusOK
+		}
+
+		logger.Printf("Returning status %v.\n", returnCode)
+
+		w.WriteHeader(returnCode)
 	}
 }
 
@@ -134,8 +167,6 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 	// function might need to be reevaluated for efficiency
 	var response *http.Response
 	var err error
-
-	logger.Printf("IgnoreSSL is set to %t\n", ignoreSSL)
 
 	if ignoreSSL {
 		// configure to skip TLS verification
@@ -176,11 +207,11 @@ func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 
 func convertToJson(apiResponse string, requestDuration time.Duration, requestStart time.Time) string {
 	var decodedResponse plexResponse
-	var endpointStatus string = "Down"
+	var endpointStatus int = 1
 
 	// apiResponse from pollPlexAPI()
 	if apiResponse != "-1" {
-		endpointStatus = "Up"
+		endpointStatus = 0
 	}
 
 	xml.Unmarshal([]byte(apiResponse), &decodedResponse)
@@ -213,6 +244,8 @@ func getResponse(endpoint string, ignoreSSL bool, sourceIP string) string {
 	var requestStart = time.Now()
 	apiResponse := pollPlexAPI(endpoint, ignoreSSL)
 	var requestDuration = time.Since(requestStart)
+
+	logger.Printf("API request completed in %v\n", requestDuration.Milliseconds())
 
 	jsonResult := convertToJson(apiResponse, requestDuration, requestStart.UTC())
 
@@ -263,12 +296,15 @@ func main() {
 
 	logger.Printf("Startup time elapsed: %s\n", time.Since(startTime))
 
+	logger.Printf("IgnoreSSL is set to %t\n", configuration.IgnoreSSL)
+
 	var fullListenAddress = configuration.ListenAddress + ":" + strconv.Itoa(configuration.ListenPort)
 
 	// build full API endpoint, convert int port to string with strconv.Itoa
 	plexAPIEndpoint := configuration.PlexAddress + ":" + strconv.Itoa(configuration.PlexPort) + plexAPIPath
 
-	http.HandleFunc("/status", response(plexAPIEndpoint, configuration.IgnoreSSL))
+	http.HandleFunc("/status", statusResponse(plexAPIEndpoint, configuration.IgnoreSSL))
+	http.HandleFunc("/health", healthResponse(plexAPIEndpoint, configuration.IgnoreSSL))
 
 	err = http.ListenAndServe(fullListenAddress, nil)
 

@@ -10,6 +10,19 @@ permissions:
     packages: write
 
 jobs:
+  read-changelog:
+    name: Read CHANGELOG
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Read CHANGELOG data
+      # https://medium.com/@ibraheemabukaff/github-actions-exporting-multi-line-one-line-value-environment-variable-5bb86d01e866
+        run: |          
+          echo 'CHANGELOG<<EOF' >> $GITHUB_ENV
+          cat CHANGELOG >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
   create-github-release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -24,10 +37,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
+          body: ${{ env.CHANGELOG }}
           draft: false
           prerelease: true
 
@@ -57,6 +67,5 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goarm: 7
         goversion: "1.21.1"
-        #binary_name: "plex_monitor-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix-goarch }}"
-        extra_files: LICENSE README.md
+        extra_files: LICENSE README.md plex_monitor.yaml
         compress_assets: auto
