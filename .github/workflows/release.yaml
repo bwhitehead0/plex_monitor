@@ -10,8 +10,22 @@ permissions:
     packages: write
 
 jobs:
-  read-changelog:
-    name: Read CHANGELOG
+  # read-changelog:
+  #   name: Read CHANGELOG
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@master
+  #     - name: Read CHANGELOG data
+  #     # https://medium.com/@ibraheemabukaff/github-actions-exporting-multi-line-one-line-value-environment-variable-5bb86d01e866
+  #       run: |
+  #         changelog_text=$(cat "${{ github.workspace }}/CHANGELOG")
+  #         echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+  #         echo $changelog_text >> $GITHUB_ENV
+  #         echo "EOF" >> $GITHUB_ENV
+
+  create-github-release:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -23,13 +37,6 @@ jobs:
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo $changelog_text >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-  create-github-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@master
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
