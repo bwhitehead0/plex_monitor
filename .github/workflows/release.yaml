@@ -58,5 +58,5 @@ jobs:
         goarm: 7
         goversion: "1.21.1"
         #binary_name: "plex_monitor-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix-goarch }}"
-        extra_files: LICENSE README.md
+        extra_files: LICENSE README.md plex_monitor.yaml
         compress_assets: auto

@@ -124,6 +124,9 @@ func statusResponse(endpoint string, ignoreSSL bool) http.HandlerFunc {
 		if err != nil {
 			logger.Printf("Error getting client IP.\n")
 		}
+
+		// set content-type to json
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		output := getResponse(endpoint, ignoreSSL, sourceIP)
 
 		io.WriteString(w, output)
