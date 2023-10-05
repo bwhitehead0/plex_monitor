@@ -1,17 +1,18 @@
-name: Create Pre-Release and Assets
+name: Create Release and Assets (Dry Run)
 on:
   push:
     # Sequence of patterns matched against refs/tags
-    tags:
-      - 'v*-rc*' # Push events to matching v*-rc*, i.e. v1.0.0-rc.1 (v 1.0.0 release candidate 1)
+    branches: ["develop"]
+  pull_request:
+    branches: ["develop"]
 
 permissions:
     contents: write
     packages: write
 
 jobs:
-  read-changelog:
-    name: Read CHANGELOG
+  create-github-release-:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -23,27 +24,13 @@ jobs:
           echo "CHANGELOG<<EOF" >> $GITHUB_ENV
           echo "$changelog_text" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-  create-github-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@master
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: ${{ env.CHANGELOG }}
-          draft: false
-          prerelease: true
+      - name: Echo CHANGELOG
+        run: |
+          echo "CHANGELOG read from file as:"
+          echo "${{ env.CHANGELOG }}"
 
   releases-matrix:
-    name: Release Go Binary
+    name: Release Go Binary Dry Run
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -61,12 +48,5 @@ jobs:
             goos: darwin
     steps:
     - uses: actions/checkout@v3
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goarm: 7
-        goversion: "1.21.1"
-        extra_files: LICENSE README.md plex_monitor.yaml
-        compress_assets: auto
+    - name: Echo build architectures
+      run: echo "Dry Run build - ${{ matrix.goos }}/${{ matrix.goarch }}"
