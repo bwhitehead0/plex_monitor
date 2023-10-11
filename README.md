@@ -86,13 +86,18 @@ The configuration file is in YAML format, and supports the following confuration
 
 ## Building
 
-Built and tested against Go v1.21.1
+Built and tested against Go v1.21.1+
 
 ```
 git clone https://github.com/bwhitehead0/plex_monitor.git
 cd plex_monitor
 go build main.go -o plex_monitor plex_monitor
 ```
+
+# Known Issues
+
+- `plex_monitor` v0.1.1 is not coded to function as a typical Windows service. (See [#16](https://github.com/bwhitehead0/plex_monitor/issues/16))
+
 # Roadmap
 
 - Accept parameters in lieu of config file.
