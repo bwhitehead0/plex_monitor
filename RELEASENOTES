@@ -1,11 +1,20 @@
-v0.1.1
+v0.1.2
   Application
 
-    - Changed JSON payload response to 0/1 instead of up/down [efed3cb]
-    - Relocated log message re IgnoreSSL to a better place [efed3cb]
-    - Added logging for API request duration [efed3cb]
-    - Set HTTP header for Content-Type to 'application/json' [9413045]
+    - Added root API endpoint at / providing some basic usage/info. [1e14d0a] [#16]
 
   Build
 
-    - Added config file plex_monitor.yaml to build package [9413045]
+    - Updated build process to pull release data from RELEASENOTES instead of CHANGELOG. [81bb146] [#17]
+
+v0.1.1
+  Application
+
+    - Changed JSON payload response to 0/1 instead of up/down. [efed3cb]
+    - Relocated log message re IgnoreSSL to a better place. [efed3cb]
+    - Added logging for API request duration. [efed3cb]
+    - Set HTTP header for Content-Type to 'application/json'. [9413045]
+
+  Build
+
+    - Added config file plex_monitor.yaml to build package. [9413045]
