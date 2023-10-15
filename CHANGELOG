@@ -1,11 +1,11 @@
 v0.1.2
   Application
 
-    - Added root API endpoint at / providing some basic usage/info. [1e14d0a] [#16]
+    - Added root API endpoint at / providing some basic usage/info. [1e14d0a] [#19]
 
   Build
 
-    - Updated build process to pull release data from RELEASENOTES instead of CHANGELOG. [81bb146] [#17]
+    - Updated build process to pull release data from RELEASENOTES instead of CHANGELOG. [81bb146] [#18]
 
 v0.1.1
   Application
