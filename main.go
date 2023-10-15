@@ -163,6 +163,68 @@ func healthResponse(endpoint string, ignoreSSL bool) http.HandlerFunc {
 	}
 }
 
+func rootResponse() http.HandlerFunc {
+	// using a wrapped handler https://go-cloud-native.com/golang/pass-arguments-to-http-handlers-in-go
+	return func(w http.ResponseWriter, r *http.Request) {
+		sourceIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			logger.Printf("Error getting client IP.\n")
+		}
+		logger.Printf("Received request for endpoint '/' from %s\n", sourceIP)
+
+		returnHtml := fmt.Sprintf(`
+	<html lang="en"><head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Plex Monitor</title>
+		<style>body {
+	  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,Liberation Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;
+	  margin: 0;
+	}
+	header {
+	  background-color: #2d8de6;
+	  color: #fff;
+	  font-size: 1rem;
+	  padding: 1rem;
+	}
+	main {
+	  padding: 1rem;
+	}
+	label {
+	  display: inline-block;
+	  width: 0.5em;
+	}
+	
+	</style>
+	  </head>
+	  <body>
+		<header>
+		  <h1>Plex Monitor</h1>
+		</header>
+		<main>
+		  <h2>Plex Monitor v%s</h2>
+		  <div>Code and documentation on <a href="https://github.com/bwhitehead0/plex_monitor">GitHub</a>.</div>
+		  <div>
+			<ul>
+			  
+			  <li><a href="/health">Health - Returns HTTP 200 or 503</a></li>
+			  <li><a href="/status">Status - Returns details about Plex server</a></li>
+			  
+			</ul>
+		  </div>
+		  
+		  
+		</main>
+	  
+	
+	</body></html>
+		`, appVersion)
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		io.WriteString(w, returnHtml)
+	}
+}
+
 func pollPlexAPI(endpoint string, ignoreSSL bool) string {
 	// function might need to be reevaluated for efficiency
 	var response *http.Response
@@ -303,6 +365,7 @@ func main() {
 	// build full API endpoint, convert int port to string with strconv.Itoa
 	plexAPIEndpoint := configuration.PlexAddress + ":" + strconv.Itoa(configuration.PlexPort) + plexAPIPath
 
+	http.HandleFunc("/", rootResponse())
 	http.HandleFunc("/status", statusResponse(plexAPIEndpoint, configuration.IgnoreSSL))
 	http.HandleFunc("/health", healthResponse(plexAPIEndpoint, configuration.IgnoreSSL))
 

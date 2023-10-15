@@ -4,7 +4,7 @@ Documentation=https://github.com/bwhitehead0/plex_monitor
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/plex_monitor --config.file=/etc/plex_monitor.yaml
+ExecStart=/usr/local/bin/plex_monitor -config.file=/etc/plex_monitor.yaml
 Restart=on-failure
 StandardOutput=append:/var/log/plex_monitor.log
 StandardError=append:/var/log/plex_monitor.log

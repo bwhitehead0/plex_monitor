@@ -17,17 +17,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
-      - name: Read CHANGELOG data
+      - name: Read RELEASENOTES data
       # https://medium.com/@ibraheemabukaff/github-actions-exporting-multi-line-one-line-value-environment-variable-5bb86d01e866
         run: |
-          changelog_text=$(cat "${{ github.workspace }}/CHANGELOG")
-          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-          echo "$changelog_text" >> $GITHUB_ENV
+          releasenotes_text=$(cat "${{ github.workspace }}/RELEASENOTES")
+          echo "RELEASENOTES<<EOF" >> $GITHUB_ENV
+          echo "$releasenotes_text" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-      - name: Echo CHANGELOG
+      - name: Echo RELEASENOTES
         run: |
-          echo "CHANGELOG read from file as:"
-          echo "${{ env.CHANGELOG }}"
+          echo "RELEASENOTES read from file as:"
+          echo "${{ env.RELEASENOTES }}"
 
   releases-matrix:
     name: Release Go Binary Dry Run
