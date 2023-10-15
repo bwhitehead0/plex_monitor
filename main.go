@@ -183,7 +183,7 @@ func rootResponse() http.HandlerFunc {
 	  margin: 0;
 	}
 	header {
-	  background-color: #2d8de6;
+	  background-color: #e4a00d;
 	  color: #fff;
 	  font-size: 1rem;
 	  padding: 1rem;
