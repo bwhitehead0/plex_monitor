@@ -7,6 +7,11 @@ v0.1.2
 
     - Updated build process to pull release data from RELEASENOTES instead of CHANGELOG. [81bb146] [#18]
 
+v0.1.1.1
+  Application
+
+    = Updated Go module version from 1.21.1 to 1.21.3 as fix to CVE-2023-39325 [37f7350] [ #20]
+
 v0.1.1
   Application
 
@@ -25,5 +30,5 @@ v0.1.1
 
 v0.1.0
   Application
-  
+
     - Initial application coded.
