@@ -58,7 +58,7 @@ import (
 
 var logger = log.New(os.Stderr, "", 5)
 var startTime = time.Now()
-var appVersion = "0.1.1"
+var appVersion = "0.1.2"
 
 type config struct {
 	PlexAddress   string `yaml:"PlexAddress"`
@@ -172,6 +172,7 @@ func rootResponse() http.HandlerFunc {
 		}
 		logger.Printf("Received request for endpoint '/' from %s\n", sourceIP)
 
+		// shamelessly stolen from node exporter
 		returnHtml := fmt.Sprintf(`
 	<html lang="en"><head>
 		<meta charset="UTF-8">
