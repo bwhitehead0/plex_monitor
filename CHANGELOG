@@ -1,3 +1,12 @@
+v0.1.2
+  Application
+
+    - Added root API endpoint at / providing some basic usage/info. [1e14d0a] [#19]
+
+  Build
+
+    - Updated build process to pull release data from RELEASENOTES instead of CHANGELOG. [81bb146] [#18]
+
 v0.1.1.1
   Application
 
@@ -14,6 +23,10 @@ v0.1.1
   Build
 
     - Added config file plex_monitor.yaml to build package [9413045]
+
+  Known Issues
+  
+    - Versions up to v0.1.1 cannot be executed as a Windows service. [#16]
 
 v0.1.0
   Application
